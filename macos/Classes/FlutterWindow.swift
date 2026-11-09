@@ -199,11 +199,19 @@ class FlutterWindow: BaseFlutterWindow {
   deinit {
     debugPrint("release window resource")
     window.delegate = nil
-    if let flutterViewController = window.contentViewController as? FlutterViewController {
-      flutterViewController.engine.shutDownEngine()
-    }
+    let flutterViewController = window.contentViewController as? FlutterViewController
     window.contentViewController = nil
     window.windowController = nil
+    // Shut the engine down on the next main run-loop turn, not here. This deinit
+    // runs inside windowWillClose, and with Flutter's FlutterRunLoop (3.4x) a
+    // main-thread task the engine already queued can still fire afterwards and
+    // abort in EmbedderThreadHost::RunnerIsValid (crash seen on 3.47.9, macOS 13).
+    // The block keeps the controller, and so the engine, alive until then.
+    if let flutterViewController = flutterViewController {
+      DispatchQueue.main.async {
+        flutterViewController.engine.shutDownEngine()
+      }
+    }
   }
 }
 
