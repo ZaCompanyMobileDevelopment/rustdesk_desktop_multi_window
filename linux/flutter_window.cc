@@ -66,6 +66,11 @@ FlutterWindow::FlutterWindow(
       project = fl_dart_project_new();
   const char *entrypoint_args[] = {"multi_window", g_strdup_printf("%ld", id_), args.c_str(), nullptr};
   fl_dart_project_set_dart_entrypoint_arguments(project, const_cast<char **>(entrypoint_args));
+  // Flutter 3.47 made Impeller the Linux default. Session windows draw the remote
+  // screen through GL textures and find_gl_area below, both written for the
+  // OpenGL/Skia renderer; under Impeller viewers showed only black or white.
+  // Keep sub-windows on the renderer the main window uses (my_application.cc).
+  fl_dart_project_set_enable_impeller(project, FALSE);
 
   FlView* fl_view = fl_view_new(project);
   gtk_container_add(GTK_CONTAINER(window_), GTK_WIDGET(fl_view));
